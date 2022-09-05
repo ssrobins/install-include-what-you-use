@@ -1,0 +1,32 @@
+name: 'Include what you use'
+inputs:
+  clang_version:
+    description: 'Major version of clang (12, 13, 14, etc...)'
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Include what you use (Linux)
+      if: runner.os == "Linux"
+      run: |
+        sudo apt-get install libclang-${{ inputs.clang_version }}-dev -y
+        git clone https://github.com/include-what-you-use/include-what-you-use.git
+        cd include-what-you-use
+        git checkout clang_${{ inputs.clang_version }}
+        cmake -G "Unix Makefiles" -DCMAKE_C_COMPILER=/usr/bin/clang-${{ inputs.clang_version }} -DCMAKE_CXX_COMPILER=/usr/bin/clang++-${{ inputs.clang_version }} -DCMAKE_PREFIX_PATH=/usr/lib/llvm-${{ inputs.clang_version }}/lib/cmake -B build
+        cmake --build build --parallel
+        sudo cmake --install build
+        include-what-you-use  --version
+
+      - name: Set up Include what you use (macOS)
+        if: runner.os == "macOS"
+        run: |
+          brew install llvm@13 ninja
+          git clone https://github.com/include-what-you-use/include-what-you-use.git
+          cd include-what-you-use
+          git checkout clang_${{ inputs.clang_version }}
+          cmake -G "Unix Makefiles" -DCMAKE_C_COMPILER=$(brew --prefix llvm@${{ inputs.clang_version }})/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@${{ inputs.clang_version }})/bin/clang++ -DCMAKE_PREFIX_PATH=$(brew --prefix llvm@${{ inputs.clang_version }})/lib/cmake -B build
+          cmake --build build --parallel
+          echo "$GITHUB_WORKSPACE/include-what-you-use/build/bin" >> $GITHUB_PATH
+          $GITHUB_WORKSPACE/include-what-you-use/build/bin/include-what-you-use --version
+
